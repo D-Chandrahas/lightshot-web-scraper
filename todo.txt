@@ -1,0 +1,6 @@
+add args
+add save file
+add "this image was deleted/removed" error detection
+use http.client to make it faster?
+display image options
+check if all image url formats are considered
