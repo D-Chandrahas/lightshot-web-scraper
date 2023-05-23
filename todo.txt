@@ -4,3 +4,13 @@ add "this image was deleted/removed" error detection
 use http.client to make it faster?
 display image options
 check if all image url formats are considered
+serial order options(np.base_repr or custom class using array|list)
+ocr and face detection stuff
+add logging option
+beautiful soup?
+better headers
+7 char strings
+cache ip from dns?
+.webp format
+
+
