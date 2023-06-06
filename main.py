@@ -11,7 +11,7 @@ import cv2
 
 IMGUR_ERR_IMAGE = requests.get("https://i.imgur.com/removed.png").content
 
-IMG_URL_REGEX = re.compile(r'<meta property="og:image" content="(.*?)"/>')
+IMG_URL_REGEX = re.compile(r'<img class="no-click screenshot-image" src="(.*?)"')
 
 def random_ls_url(length=6):
     return "https://prnt.sc/" + random.choices("123456789" + string.ascii_lowercase)[0] + "".join(random.choices(string.digits + string.ascii_lowercase, k=length-1))
@@ -22,7 +22,7 @@ def get_img_url(ls_res):
 
 def filter_img_url(img_url):
     if img_url is None : return True
-    if img_url == "//st.prntscr.com/2023/05/26/0610/img/0_173a7b_211be8ff.png" : return True # use .endswith()
+    if img_url == "//st.prntscr.com/2023/05/26/0610/img/0_173a7b_211be8ff.png" : return True # use .endswith(0_173a7b_211be8ff.png) or .startswith(//st.prntscr.com)
     # if img_url.startswith("https://image.prntscr.com") : return True
     return False
 
@@ -50,7 +50,7 @@ while True:
         print("url_OK", end=", ")
         img_host_res = requests.get(img_url) # type: ignore
         if img_host_res.status_code == 200:
-            print("img_Host_OK", end=", ")
+            print("img_Found", end=", ")
             enc_img = img_host_res.content
             if not filter_img(enc_img):
                 print("img_OK")
