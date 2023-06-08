@@ -8,6 +8,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2
+from argparse import ArgumentParser
 
 
 HEADERS = {
@@ -20,8 +21,16 @@ IMGUR_ERR_IMAGE = requests.get("https://i.imgur.com/removed.png").content
 IMG_URL_REGEX = re.compile(r'<img class="no-click screenshot-image" src="(.*?)"')
 
 
+def rand_ls_id36(length=6):
+    return (random.choice("123456789" + string.ascii_lowercase) +
+            "".join(random.choices(string.digits + string.ascii_lowercase, k=length-1))
+    )
+
 def random_ls_url(length=6):
-    return "https://prnt.sc/" + random.choices("123456789" + string.ascii_lowercase)[0] + "".join(random.choices(string.digits + string.ascii_lowercase, k=length-1))
+    return "https://prnt.sc/" + rand_ls_id36(length)
+
+def get_ls_url_from_id10(id10):
+    return "https://prnt.sc/" + np.base_repr(id10, 36)
 
 def get_img_url(ls_res_body):
     img_url = IMG_URL_REGEX.search(ls_res_body)
@@ -37,17 +46,37 @@ def filter_img(img):
     if img == IMGUR_ERR_IMAGE : return True
     return False
 
+def arguments():
+    argparser = ArgumentParser()
+    argparser.add_argument("--start_id",
+                           "-s",
+                           type=str,
+                           help="Start scraping sequentially from this lightshot id. id should be a alpha-numeric string of length 6/7. If this arg is not given, scrape random ids")
+    argparser.add_argument("--length",
+                            "-l",
+                            type=int,
+                            default=6,
+                            help="Length of lightshot id for random scraping. Default value is 6.")
+    argparser.add_argument("--count",
+                            "-c",
+                            type=int,
+                            default=100,
+                            help="Scraper will stop after this many images. Default value is 100.")
+    argparser.add_argument("--outdir",
+                            "-o",
+                            type=str,
+                            default="images/",
+                            help="Path to directory where images will be saved. Default value is images/.")
+    return argparser.parse_args()
+    
  
-def main():
-    print("i, lightshot_url, img_url, img_url_Status , img_host_Status, img_Status")
-    i = 0
+def main(args):
+    print("lightshot_url, img_url, img_url_Status , img_host_Status, img_Status")
+    id10 = 0 if args.start_id == False else int(args.start_id, 36)
 
-    while True:
+    for _ in range(args.count):
 
-        i += 1
-        print(i, end=", ")
-
-        ls_url = random_ls_url()
+        ls_url = random_ls_url(args.length) if args.start_id == False else get_ls_url_from_id10(id10)
         print(ls_url, end=", ")
 
         img_url = get_img_url(requests.get(ls_url,  headers=HEADERS).text)
@@ -82,8 +111,11 @@ def main():
         else:
             print("img_url_Filtered, -, -")
 
+        id10 += 1
+
 if __name__ == "__main__":
     try:
-        main()
+        args = arguments()
+        main(args)
     except KeyboardInterrupt:
         sys.exit(0)
