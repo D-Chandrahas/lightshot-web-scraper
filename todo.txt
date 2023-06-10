@@ -12,3 +12,4 @@ better headers
 cache ip from dns?
 multi threading
 beautify
+req and py-ver file
