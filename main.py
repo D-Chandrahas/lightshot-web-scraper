@@ -1,18 +1,18 @@
-from io import BytesIO
-import sys
-import requests
+import os
 import random
-import string
 import re
-from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
-import cv2
+import string
+import sys
 from argparse import ArgumentParser
+from mimetypes import guess_extension
+
+from numpy import base_repr
+import requests
+
 
 
 HEADERS = {
-    "User-Agent": "Python 3",
+    "User-Agent": "Python 3", # change this if cloudflare blocks you
     "Connection": "keep-alive"
 }
 
@@ -21,24 +21,13 @@ IMGUR_ERR_IMAGE = requests.get("https://i.imgur.com/removed.png").content
 IMG_URL_REGEX = re.compile(r'<img class="no-click screenshot-image" src="(.*?)"')
 
 
-def rand_ls_id36(length=6):
-    return (random.choice("123456789" + string.ascii_lowercase) +
-            "".join(random.choices(string.digits + string.ascii_lowercase, k=length-1))
-    )
-
-def random_ls_url(length=6):
-    return "https://prnt.sc/" + rand_ls_id36(length)
-
-def get_ls_url_from_id10(id10):
-    return "https://prnt.sc/" + np.base_repr(id10, 36)
-
 def get_img_url(ls_res_body):
     img_url = IMG_URL_REGEX.search(ls_res_body)
-    return None if img_url is None else img_url.group(1)
+    return None if img_url == None else img_url.group(1)
 
 def filter_img_url(img_url):
-    if img_url is None : return True
-    if img_url == "//st.prntscr.com/2023/05/26/0610/img/0_173a7b_211be8ff.png" : return True # use .endswith(0_173a7b_211be8ff.png) or .startswith(//st.prntscr.com)
+    if img_url == None : return True
+    if img_url.startswith("//st.prntscr.com") : return True
     # if img_url.startswith("https://image.prntscr.com") : return True
     return False
 
@@ -46,12 +35,36 @@ def filter_img(img):
     if img == IMGUR_ERR_IMAGE : return True
     return False
 
+def check_args(args):
+    if args.start_id != None and not args.start_id.isalnum():
+        print("ERROR: start_id should be a alpha-numeric string (Recommended length 6).")
+        sys.exit(1)
+    if args.length < 1:
+        print("ERROR: length should be greater than 0.")
+        sys.exit(1)
+    if args.count < 1:
+        print("ERROR: count should be greater than 0.")
+        sys.exit(1)
+
+def random_ls_url(length=6):
+    return ("https://prnt.sc/" +
+            random.choice("123456789" + string.ascii_lowercase) +
+            "".join(random.choices(string.digits + string.ascii_lowercase, k=length-1))
+    )
+
+def get_ls_url_from_id10(id10):
+    return "https://prnt.sc/" + base_repr(id10, 36).lower()
+
+def save_img(path, img):
+    with open(path, "wb") as f:
+        f.write(img)
+
 def arguments():
     argparser = ArgumentParser()
     argparser.add_argument("--start_id",
                            "-s",
                            type=str,
-                           help="Start scraping sequentially from this lightshot id. id should be a alpha-numeric string of length 6/7. If this arg is not given, scrape random ids")
+                           help="Start scraping sequentially from this lightshot id. id should be a alpha-numeric string (Recommended length 6). If this arg is not given, scrape random ids")
     argparser.add_argument("--length",
                             "-l",
                             type=int,
@@ -61,7 +74,7 @@ def arguments():
                             "-c",
                             type=int,
                             default=100,
-                            help="Scraper will stop after this many images. Default value is 100.")
+                            help="Scraper will stop after this many urls. Default value is 100.")
     argparser.add_argument("--outdir",
                             "-o",
                             type=str,
@@ -71,12 +84,17 @@ def arguments():
     
  
 def main(args):
+    check_args(args)
+
+    os.makedirs(args.outdir, exist_ok=True)
+
     print("lightshot_url, img_url, img_url_Status , img_host_Status, img_Status")
-    id10 = 0 if args.start_id == False else int(args.start_id, 36)
+
+    id10 = 0 if args.start_id == None else int(args.start_id, 36)
 
     for _ in range(args.count):
 
-        ls_url = random_ls_url(args.length) if args.start_id == False else get_ls_url_from_id10(id10)
+        ls_url = random_ls_url(args.length) if args.start_id == None else get_ls_url_from_id10(id10)
         print(ls_url, end=", ")
 
         img_url = get_img_url(requests.get(ls_url,  headers=HEADERS).text)
@@ -91,27 +109,24 @@ def main(args):
                 print("img_Host_200", end=", ")
 
                 enc_img = img_host_res.content
+                enc_img_extn = guess_extension(img_host_res.headers["Content-Type"])
+                if enc_img_extn == None: enc_img_extn = img_url[-4:] # type: ignore
                 
                 if not filter_img(enc_img):
                     print("img_OK")
 
-                    img = Image.open(BytesIO(enc_img))
-                    # img.show()
-
-                    # plt.imshow(img)
-                    # plt.show()
-
-                    cv2.imshow('image', cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR))
-                    cv2.waitKey(2000)
+                    save_img(os.path.join(args.outdir, ls_url[16:] + enc_img_extn), enc_img)
 
                 else:
                     print("img_Filtered")
             else:
                 print(f"img_Host_{img_host_res.status_code}, -")
         else:
-            print("img_url_Filtered, -, -")
+            if img_url == None: print("img_url_NotFound, -, -")
+            else : print("img_url_Filtered, -, -")
 
         id10 += 1
+
 
 if __name__ == "__main__":
     try:
