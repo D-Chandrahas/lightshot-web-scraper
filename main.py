@@ -64,22 +64,22 @@ def arguments():
     argparser.add_argument("--start_id",
                            "-s",
                            type=str,
-                           help="Start scraping sequentially from this lightshot id. id should be a alpha-numeric string (Recommended length 6). If this arg is not given, scrape random ids")
+                           help="Start scraping sequentially from START_ID. START_ID should be a alpha-numeric string (Recommended length 6). If this argument is not given, scraper will scrape random IDs.")
     argparser.add_argument("--length",
                             "-l",
                             type=int,
                             default=6,
-                            help="Length of lightshot id for random scraping. Default value is 6.")
+                            help="Length of generted IDs if random scraping is chosen. (Default value is 6).")
     argparser.add_argument("--count",
                             "-c",
                             type=int,
                             default=100,
-                            help="Scraper will stop after this many urls. Default value is 100.")
+                            help="Scraper will stop after COUNT urls. (Default value is 100).")
     argparser.add_argument("--outdir",
                             "-o",
                             type=str,
                             default="images/",
-                            help="Path to directory where images will be saved. Default value is images/.")
+                            help="Path to directory where images will be saved. (Default value is images/).")
     return argparser.parse_args()
     
  
